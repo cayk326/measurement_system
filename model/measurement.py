@@ -9,12 +9,21 @@ import board
 class MeasBNO055:
     
     def __init__(self, BNO_UPDATE_FREQUENCY_HZ=10, INTERVAL=1000):
+        '''
         
         self.COLUMNS = ["Time","euler_x", "euler_y", "euler_z", "gyro_x", "gyro_y", "gyro_z", "gravity_x", "gravity_y", "gravity_z",
                         "linear_accel_x", "linear_accel_y", "linear_accel_z","accel_x", "accel_y", "accel_z",
                         "quaternion_1", "quaternion_2", "quaternion_3", "quaternion_4", 
                         "calibstat_sys", "calibstat_gyro", "calibstat_accel", "calibstat_mag",
                         "Roll", "Pitch", "Yaw"]
+        '''
+    
+        self.COLUMNS = ["Time", "gyro_x", "gyro_y", "gyro_z", 
+                        "linear_accel_x", "linear_accel_y", "linear_accel_z",
+                        "quaternion_1", "quaternion_2", "quaternion_3", "quaternion_4", 
+                        "calibstat_sys", "calibstat_gyro", "calibstat_accel", "calibstat_mag",
+                        "Roll", "Pitch", "Yaw"]
+        
     
         self.BNO_UPDATE_FREQUENCY_HZ = BNO_UPDATE_FREQUENCY_HZ
         self.exepath = path + '/measurement_system'
@@ -49,19 +58,19 @@ class MeasBNO055:
         Get data from new value from BNO055
         
         '''    
-        euler_z, euler_y, euler_x= [val for val in bno.euler]# Euler angle[deg] (Yaw, Roll, Pitch) -> euler_x,euler_y,euler_z = (Roll, Pitch, Yaw)
-        euler_x = (-1.0) * euler_x
-        euler_y = (-1.0) * euler_y
-        euler_z = euler_z - 180.0# 180deg offset
+        #euler_z, euler_y, euler_x= [val for val in bno.euler]# Euler angle[deg] (Yaw, Roll, Pitch) -> euler_x,euler_y,euler_z = (Roll, Pitch, Yaw)
+        #euler_x = (-1.0) * euler_x
+        #euler_y = (-1.0) * euler_y
+        #euler_z = euler_z - 180.0# 180deg offset
         gyro_x, gyro_y, gyro_z = [val for val in bno.gyro]# Gyro[rad/s]
-        gravity_x, gravity_y, gravity_z = [val for val in bno.gravity]# Gravitaional aceleration[m/s^2]
+        #gravity_x, gravity_y, gravity_z = [val for val in bno.gravity]# Gravitaional aceleration[m/s^2]
         linear_accel_x, linear_accel_y, linear_accel_z = [val for val in bno.linear_acceleration]# Linear acceleration[m/s^2]
-        accel_x, accel_y, accel_z = [val for val in bno.acceleration]# Three axis of acceleration(Gravity + Linear motion)[m/s^2]
+        #accel_x, accel_y, accel_z = [val for val in bno.acceleration]# Three axis of acceleration(Gravity + Linear motion)[m/s^2]
         quaternion_1, quaternion_2, quaternion_3, quaternion_4 = [val for val in bno.quaternion]# Quaternion
         calibstat_sys, calibstat_gyro, calibstat_accel, calibstat_mag = [val for val in bno.calibration_status]# Status of calibration
         roll, pitch, yaw = self.calcEulerfromQuaternion(quaternion_1, quaternion_2, quaternion_3, quaternion_4)# Cal Euler angle from quaternion
-        return euler_x , euler_y , euler_z ,gyro_x, gyro_y, gyro_z,gravity_x, gravity_y, gravity_z,\
-                linear_accel_x, linear_accel_y, linear_accel_z, accel_x, accel_y, accel_z,\
+        return  gyro_x, gyro_y, gyro_z,\
+                linear_accel_x, linear_accel_y, linear_accel_z,\
                 quaternion_1, quaternion_2, quaternion_3, quaternion_4,\
                 calibstat_sys, calibstat_gyro, calibstat_accel, calibstat_mag,\
                 roll, pitch, yaw
