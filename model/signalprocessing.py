@@ -4,22 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def butterlowpass(x, fpass, fstop, gpass, gstop, fs, dt, checkflag, labelname='Signal[-]'):
-    '''
-    バターワースを用いたローパスフィルタ
-    filtfilt関数により位相ずれを防ぐ
-    (順方向と逆方向からフィルタをかけて位相遅れを相殺)
-    :param x: Input signal
-    :param fpass: 通過域端周波数[Hz]
-    :param fstop: 阻止域端周波数[Hz]
-    :param gpass: 通過域最大損失量[dB]
-    :param gstop: 阻止域最大損失量[dB]
-    :param fs: サンプリング周波数[Hz]
-    :param dt: サンプリングレート[s]
-    :param checkflag: グラフ生成ON/OFF
-    :param labelname: 信号ラベル名
-    :return:　フィルター後データ
-    '''
-
 
     print('Applying filter against: {0}...'.format(labelname))
     fn = 1 / (2 * dt)
