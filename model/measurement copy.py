@@ -85,10 +85,3 @@ class MeasBNO055:
         pitch = COEF_EULER2DEG * (np.arcsin(-2.0 * (_x * _z - _y * _w) / (sqx + sqy + sqz + sqw)))# Pitch
         roll = COEF_EULER2DEG * (np.arctan2(2.0 * (_y * _z + _x * _w), (-sqx - sqy + sqz + sqw)))# Roll
         return roll, pitch, yaw
-    
-    
-if __name__ == '__main__':
-    import time
-    start = time.time()
-    end = time.time()
-    print(end - start)
