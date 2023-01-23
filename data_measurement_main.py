@@ -8,6 +8,8 @@ import time
 import adafruit_bno055
 import board
 import matplotlib.pyplot as plt
+import pandas as pd
+import datetime
 
 
 path = os.getcwd()
@@ -27,10 +29,14 @@ class measurement_BNO055:
                         "gyro_x", "gyro_y", "gyro_z", 
                         "euler_x", "euler_y", "euler_z",
                         "quat_roll", "quat_pitch", "quat_yaw", 
+                        "quaternion_1", "quaternion_2", "quaternion_3", "quaternion_4", \
                         "calibstat_sys", "calibstat_gyro", "calibstat_accel", "calibstat_mag"
                         ]
+
+
     
         self.BNO_UPDATE_FREQUENCY_HZ = BNO_UPDATE_FREQUENCY_HZ
+        self.sampling_time = 1 / self.BNO_UPDATE_FREQUENCY_HZ
         self.exepath = path + '/measurement_system'
         self.datapath = path + '/data'
     
@@ -59,8 +65,8 @@ class measurement_BNO055:
         self.calibstat_accel_queue = deque(np.zeros(self.INIT_LEN))# calibstat_accel
         self.calibstat_mag_queue = deque(np.zeros(self.INIT_LEN))# calibstat_mag
 
-
-        self.assy_data = None
+        self.current_data_list = np.array([])
+        self.assy_data = np.array([])
 
         i2c_instance = board.I2C()
         self.bno055_sensor = adafruit_bno055.BNO055_I2C(i2c_instance)
@@ -105,7 +111,7 @@ class measurement_BNO055:
                 calibstat_sys, calibstat_gyro, calibstat_accel, calibstat_mag
 
 
-    def update_data_stream(self):
+    def get_update_data_stream(self, Isreturnval=True):
         def update_queue(stream_queue, val):
             stream_queue.popleft()
             stream_queue.append(val)
@@ -139,22 +145,54 @@ class measurement_BNO055:
         update_queue(self.calibstat_gyro_queue, calibstat_gyro)
         update_queue(self.calibstat_accel_queue, calibstat_accel)
         update_queue(self.calibstat_mag_queue, calibstat_mag)
+        
+        if Isreturnval:
+            return  np.array([linear_accel_x, linear_accel_y, linear_accel_z, \
+                    gyro_x, gyro_y, gyro_z, \
+                    euler_x, euler_y, euler_z, \
+                    quat_roll, quat_pitch, quat_yaw, \
+                    quat1, quat2, quat3, quat4, \
+                    calibstat_sys, calibstat_gyro, calibstat_accel, calibstat_mag])
+        else:
+            return False
+
+    def concat_meas_data(self):
+        dataset = np.append(self.current_time, self.current_data_list).reshape(1, -1)
+        if self.main_loop_clock == 0:
+            self.assy_data = dataset
+        else:
+            self.assy_data = np.concatenate([self.assy_data, dataset], axis=0)
+
+    def show_current_data(self, data_list, data_label):
+        message = ""
+        for i in range(len(self.COLUMNS)-1):
+            val = data_list[i] if data_list[i] != None else "No val"
+            message = message + data_label[i] + ": " + str(val) + " / "
+        print(message)
         return
 
 
+    def save_data(self, data):
+        t_delta = datetime.timedelta(hours=9)
+        JST = datetime.timezone(t_delta, 'JST')# You have to set your timezone
+        now = datetime.datetime.now(JST)
+        timestamp = now.strftime('%Y%m%d%H%M%S')
+        data.to_csv(self.datapath + '/'+ timestamp +'_measurement_raw_data.csv', sep=',', encoding='utf-8', index=False, header=True)
+        print("Dataframe was saved!")
+
+
+
     def meas_start(self):
-        print()
-        self.meas_start_time = time.time()#Logic start time
-        counter = 0# Clock
+        
+        self.main_loop_clock = 0# Clock
         ## Measurement Main Loop ##
         print("Initialize the sensor...")
         wait_process(2)# sensor initialization
+        self.meas_start_time = time.time()#Logic start time
         try: 
             while True:
-
-
                 self.itr_start_time = time.time()# Start time of iteration loop
-                self.current_time = counter / self.BNO_UPDATE_FREQUENCY_HZ# Current time                    
+                self.current_time = (self.main_loop_clock / self.BNO_UPDATE_FREQUENCY_HZ)# + self.sampling_time# Current time                    
                 ## Process / update data stream, concat data
                 """
                 1. get data fron a sensor BNO055
@@ -162,41 +200,52 @@ class measurement_BNO055:
                 3. enque data to que
                 4. create data set at current sample
                 5. concatinate data 
+                6. Convert numpuy aray to dataframe
+                7. save dataframe
 
                 """
-                self.update_data_stream()
-
-
-                """
-                
-                if counter == 0:
-                        
-                    self.assy_data = data.copy()
-
-                else: 
-                    self.assy_data = np.concatenate((self.assy_data, data), axis = 0)# Concatenate data
-                """
-
+                self.current_data_list = self.get_update_data_stream(Isreturnval=True)
+                self.concat_meas_data()
+                self.show_current_data(self.current_data_list, self.COLUMNS[1:])
 
 
 
                 self.itr_end_time = time.time()# End time of iteration loop
-                wait_process((1.0 / self.BNO_UPDATE_FREQUENCY_HZ) - (self.itr_end_time - self.itr_start_time))# For keeping sampling frequency
-                counter += 1
-                print('Time: {0} sec'.format(self.current_time))
+                print(f'Time: {self.current_time:.3f}')
+                wait_process(self.sampling_time - (self.itr_end_time - self.itr_start_time))# For keeping sampling frequency
+                self.main_loop_clock += 1
+                
 
+                if self.current_time == 10.0:
+                    print(self.current_time)
+                    print(time.time() - self.meas_start_time - self.sampling_time)
+                    print()
+                
             
         except Exception as e:
             print("Error")
             print(e)
         
         except KeyboardInterrupt:
-            print("KeybordInterrupt!")
-            plt.plot(self.Time_queue, self.euler_x_queue, 'r', '*')
-            plt.show()
-            self.meas_end_time = time.time()
+            self.meas_end_time = time.time()#0.002s
+            
+            #plt.plot(self.Time_queue, self.euler_x_queue, 'r', '*')
+            #plt.show()
+            
             # Elapsed time
-            self.elapsed_time = self.meas_end_time - self.meas_start_time         
+            self.elapsed_time = self.meas_end_time - self.meas_start_time
+            print("KeybordInterrupt!")     
+            print(f'Elapsed Time: {self.elapsed_time:.3f}')
+
+
+            # convert the DataFrame from the numpy array
+            df = pd.DataFrame(self.assy_data)
+            df.columns = self.COLUMNS
+
+            # save data
+            self.save_data(df)
+
+
 
         print("Finish")
 
