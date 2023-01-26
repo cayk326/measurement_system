@@ -1,8 +1,0 @@
-adafruit-circuitpython-bno055
-adafruit-circuitpython-register
-adafruit-circuitpython-request
-adafruit-circuitpython-typing
-Adafruit-GPIO
-Adafruit-PlatformDetect
-Adafruit-PureIO
-adafruit-circuitpython-requests

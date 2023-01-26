@@ -67,9 +67,14 @@ class measurement_BNO055:
 
         self.current_data_list = np.array([])
         self.assy_data = np.array([])
-
+        self.df = pd.DataFrame(columns=self.COLUMNS)
         i2c_instance = board.I2C()
         self.bno055_sensor = adafruit_bno055.BNO055_I2C(i2c_instance)
+
+
+        self.IsStart = False
+        self.IsStop = True
+        self.IsShow = False
 
 
     def calibration(self):
@@ -168,16 +173,21 @@ class measurement_BNO055:
         for i in range(len(self.COLUMNS)-1):
             val = data_list[i] if data_list[i] != None else "No val"
             message = message + data_label[i] + ": " + str(val) + " / "
-        print(message)
-        return
+
+        return message
 
 
-    def save_data(self, data):
+    def save_data(self):
         t_delta = datetime.timedelta(hours=9)
         JST = datetime.timezone(t_delta, 'JST')# You have to set your timezone
         now = datetime.datetime.now(JST)
         timestamp = now.strftime('%Y%m%d%H%M%S')
-        data.to_csv(self.datapath + '/'+ timestamp +'_measurement_raw_data.csv', sep=',', encoding='utf-8', index=False, header=True)
+
+
+        # convert the DataFrame from the numpy array
+        self.df = pd.DataFrame(self.assy_data)
+        self.df.columns = self.COLUMNS
+        self.df.to_csv(self.datapath + '/'+ timestamp +'_measurement_raw_data.csv', sep=',', encoding='utf-8', index=False, header=True)
         print("Dataframe was saved!")
 
 
@@ -186,11 +196,14 @@ class measurement_BNO055:
         
         self.main_loop_clock = 0# Clock
         ## Measurement Main Loop ##
-        print("Initialize the sensor...")
+        print("Measurement is started")
+
         wait_process(2)# sensor initialization
         self.meas_start_time = time.time()#Logic start time
+        self.IsStart = True
+        self.IsStop = False
         try: 
-            while True:
+            while self.IsStart:
                 self.itr_start_time = time.time()# Start time of iteration loop
                 self.current_time = (self.main_loop_clock / self.BNO_UPDATE_FREQUENCY_HZ)# + self.sampling_time# Current time                    
                 ## Process / update data stream, concat data
@@ -206,22 +219,20 @@ class measurement_BNO055:
                 """
                 self.current_data_list = self.get_update_data_stream(Isreturnval=True)
                 self.concat_meas_data()
-                self.show_current_data(self.current_data_list, self.COLUMNS[1:])
-
+                if self.IsShow:
+                    message = self.show_current_data(self.current_data_list, self.COLUMNS[1:])
+                    print(f'Time: {self.current_time:.3f}')
+                    print(message)
+                else:
+                    message = self.show_current_data(self.current_data_list, self.COLUMNS[1:])
 
 
                 self.itr_end_time = time.time()# End time of iteration loop
-                print(f'Time: {self.current_time:.3f}')
                 wait_process(self.sampling_time - (self.itr_end_time - self.itr_start_time))# For keeping sampling frequency
                 self.main_loop_clock += 1
                 
 
-                if self.current_time == 10.0:
-                    print(self.current_time)
-                    print(time.time() - self.meas_start_time - self.sampling_time)
-                    print()
-                
-            
+
         except Exception as e:
             print("Error")
             print(e)
@@ -237,13 +248,8 @@ class measurement_BNO055:
             print("KeybordInterrupt!")     
             print(f'Elapsed Time: {self.elapsed_time:.3f}')
 
-
-            # convert the DataFrame from the numpy array
-            df = pd.DataFrame(self.assy_data)
-            df.columns = self.COLUMNS
-
             # save data
-            self.save_data(df)
+            self.save_data()
 
 
 
