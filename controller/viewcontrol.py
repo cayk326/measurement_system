@@ -147,6 +147,17 @@ class measurement_controller:
             ax[1].set_ylabel('linear_accel_y[m/s^2]')
             ax[2].set_xlabel('Time[s]')
             ax[2].set_ylabel('linear_accel_z[m/s^2]')
+
+        if mode == "quat_angle":
+            ax[0].plot(self.measurement.df['Time'], self.measurement.df['quat_roll'], marker='*')
+            ax[1].plot(self.measurement.df['Time'], self.measurement.df['quat_pitch'], marker='*')
+            ax[2].plot(self.measurement.df['Time'], self.measurement.df['quat_yaw'], marker='*')
+            ax[0].set_xlabel('Time[s]')
+            ax[0].set_ylabel('quat_roll[deg]')
+            ax[1].set_xlabel('Time[s]')
+            ax[1].set_ylabel('quat_pitch[deg]')
+            ax[2].set_xlabel('Time[s]')
+            ax[2].set_ylabel('quat_yaw[deg]')
                         
         #plt.show()
         #fig = plt.gcf()
