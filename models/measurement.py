@@ -30,6 +30,7 @@ class measurement_BNO055:
                         "euler_x", "euler_y", "euler_z",
                         "quat_roll", "quat_pitch", "quat_yaw", 
                         "quaternion_1", "quaternion_2", "quaternion_3", "quaternion_4", \
+                        "magnetic_x", "magnetic_y", "magnetic_z", \
                         "calibstat_sys", "calibstat_gyro", "calibstat_accel", "calibstat_mag"
                         ]
 
@@ -59,7 +60,10 @@ class measurement_BNO055:
         self.quat1_queue = deque(np.zeros(self.INIT_LEN))# quat1 w
         self.quat2_queue = deque(np.zeros(self.INIT_LEN))# quat2 x
         self.quat3_queue = deque(np.zeros(self.INIT_LEN))# quat3 y
-        self.quat4_queue = deque(np.zeros(self.INIT_LEN))# quat4 z  
+        self.quat4_queue = deque(np.zeros(self.INIT_LEN))# quat4 z
+        self.magnetic_x_queue = deque(np.zeros(self.INIT_LEN))# magnetic_x
+        self.magnetic_y_queue = deque(np.zeros(self.INIT_LEN))# magnetic_y
+        self.magnetic_z_queue = deque(np.zeros(self.INIT_LEN))# magnetic_z
         self.calibstat_sys_queue = deque(np.zeros(self.INIT_LEN))# calibstat_sys
         self.calibstat_gyro_queue = deque(np.zeros(self.INIT_LEN))# calibstat_gyro
         self.calibstat_accel_queue = deque(np.zeros(self.INIT_LEN))# calibstat_accel
@@ -106,6 +110,7 @@ class measurement_BNO055:
 
         quaternion_1, quaternion_2, quaternion_3, quaternion_4 = [val for val in self.bno055_sensor.quaternion]# quaternion
         quat_roll, quat_pitch, quat_yaw = self.calcEulerfromQuaternion(quaternion_1, quaternion_2, quaternion_3, quaternion_4)# Cal Euler angle from quaternion
+        magnetic_x, magnetic_y, magnetic_z = [val for val in self.bno055_sensor.magnetic]# magnetic field
         calibstat_sys, calibstat_gyro, calibstat_accel, calibstat_mag = [val for val in self.bno055_sensor.calibration_status]# Status of calibration
 
         return linear_accel_x, linear_accel_y, linear_accel_z, \
@@ -113,6 +118,7 @@ class measurement_BNO055:
                 euler_x, euler_y, euler_z, \
                 (-1)*quat_roll, (-1)*quat_pitch, (-1)*quat_yaw, \
                 quaternion_1, quaternion_2, quaternion_3, quaternion_4, \
+                magnetic_x, magnetic_y, magnetic_z,\
                 calibstat_sys, calibstat_gyro, calibstat_accel, calibstat_mag
 
 
@@ -127,6 +133,7 @@ class measurement_BNO055:
         euler_x, euler_y, euler_z, \
         quat_roll, quat_pitch, quat_yaw, \
         quat1, quat2, quat3, quat4, \
+        magnetic_x, magnetic_y, magnetic_z, \
         calibstat_sys, calibstat_gyro, calibstat_accel, calibstat_mag = self.get_data_from_BNO055()
 
         update_queue(self.Time_queue, self.current_time)
@@ -146,6 +153,9 @@ class measurement_BNO055:
         update_queue(self.quat2_queue, quat2)
         update_queue(self.quat3_queue, quat3)
         update_queue(self.quat4_queue, quat4)
+        update_queue(self.magnetic_x_queue, magnetic_x)
+        update_queue(self.magnetic_y_queue, magnetic_y)
+        update_queue(self.magnetic_z_queue, magnetic_z)
         update_queue(self.calibstat_sys_queue, calibstat_sys)
         update_queue(self.calibstat_gyro_queue, calibstat_gyro)
         update_queue(self.calibstat_accel_queue, calibstat_accel)
@@ -157,6 +167,7 @@ class measurement_BNO055:
                     euler_x, euler_y, euler_z, \
                     quat_roll, quat_pitch, quat_yaw, \
                     quat1, quat2, quat3, quat4, \
+                    magnetic_x, magnetic_y, magnetic_z, \
                     calibstat_sys, calibstat_gyro, calibstat_accel, calibstat_mag])
         else:
             return False

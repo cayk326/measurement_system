@@ -111,58 +111,7 @@ class measurement_controller:
         self.ctrl_button.on_click(on_click_ctrlbutton_callback)
         self.save_button.on_click(on_click_savebutton_callback)
 
-
-    def show_historicalgraph(self, mode="gyro"):
-
-        fig, ax = plt.subplots(1, 3, figsize=(8,3), tight_layout=True)
-        if mode == "gyro":
-            ax[0].plot(self.measurement.df['Time'], self.measurement.df['gyro_x'], marker='*')
-            ax[1].plot(self.measurement.df['Time'], self.measurement.df['gyro_y'], marker='*')
-            ax[2].plot(self.measurement.df['Time'], self.measurement.df['gyro_z'], marker='*')
-            ax[0].set_xlabel('Time[s]')
-            ax[0].set_ylabel('Gyro_x(Roll Rate)[rad/s]')
-            ax[1].set_xlabel('Time[s]')
-            ax[1].set_ylabel('Gyro_y(Pitch Rate)[rad/s]')
-            ax[2].set_xlabel('Time[s]')
-            ax[2].set_ylabel('Gyro_z(Yaw Rate)[rad/s]')
-
-        if mode == "euler":
-            ax[0].plot(self.measurement.df['Time'], self.measurement.df['euler_x'], marker='*')
-            ax[1].plot(self.measurement.df['Time'], self.measurement.df['euler_y'], marker='*')
-            ax[2].plot(self.measurement.df['Time'], self.measurement.df['euler_z'], marker='*')
-            ax[0].set_xlabel('Time[s]')
-            ax[0].set_ylabel('Roll Angle[deg]')
-            ax[1].set_xlabel('Time[s]')
-            ax[1].set_ylabel('Pitch Angle[deg]')
-            ax[2].set_xlabel('Time[s]')
-            ax[2].set_ylabel('Yaw Angle[deg]') 
-
-        if mode == "linear_accel":
-            ax[0].plot(self.measurement.df['Time'], self.measurement.df['linear_accel_x'], marker='*')
-            ax[1].plot(self.measurement.df['Time'], self.measurement.df['linear_accel_y'], marker='*')
-            ax[2].plot(self.measurement.df['Time'], self.measurement.df['linear_accel_z'], marker='*')
-            ax[0].set_xlabel('Time[s]')
-            ax[0].set_ylabel('linear_accel_x[m/s^2]')
-            ax[1].set_xlabel('Time[s]')
-            ax[1].set_ylabel('linear_accel_y[m/s^2]')
-            ax[2].set_xlabel('Time[s]')
-            ax[2].set_ylabel('linear_accel_z[m/s^2]')
-
-        if mode == "quat_angle":
-            ax[0].plot(self.measurement.df['Time'], self.measurement.df['quat_roll'], marker='*')
-            ax[1].plot(self.measurement.df['Time'], self.measurement.df['quat_pitch'], marker='*')
-            ax[2].plot(self.measurement.df['Time'], self.measurement.df['quat_yaw'], marker='*')
-            ax[0].set_xlabel('Time[s]')
-            ax[0].set_ylabel('quat_roll[deg]')
-            ax[1].set_xlabel('Time[s]')
-            ax[1].set_ylabel('quat_pitch[deg]')
-            ax[2].set_xlabel('Time[s]')
-            ax[2].set_ylabel('quat_yaw[deg]')
-                        
-        #plt.show()
-        #fig = plt.gcf()
-        return
-        
+   
 def lay(width,height):
     return widgets.Layout(width=str(width)+"px",height=str(height)+"px")
 def init_meas_system():
