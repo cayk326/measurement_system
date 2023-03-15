@@ -113,10 +113,26 @@ class measurement_BNO055:
         magnetic_x, magnetic_y, magnetic_z = [val for val in self.bno055_sensor.magnetic]# magnetic field
         calibstat_sys, calibstat_gyro, calibstat_accel, calibstat_mag = [val for val in self.bno055_sensor.calibration_status]# Status of calibration
 
+        ## Convert values
+        linear_accel_x = linear_accel_x
+        linear_accel_y = linear_accel_y
+        linear_accel_z = linear_accel_z
+        gyro_x = gyro_x
+        gyro_y = 0.0 if gyro_y == None else (-1) * gyro_y
+        gyro_z = gyro_z
+        euler_x = 0.0 if euler_x == None else (-1) * euler_x
+        euler_y = euler_y
+        euler_z = euler_z
+        quat_roll = quat_roll
+        quat_pitch = (-1) * quat_pitch
+        quat_yaw = quat_yaw
+        #quaternion_1, quaternion_2, quaternion_3, quaternion_4 = quaternion_1, quaternion_2, quaternion_3, quaternion_4
+        #magnetic_x, magnetic_y, magnetic_z = magnetic_x, magnetic_y, magnetic_z
+
         return linear_accel_x, linear_accel_y, linear_accel_z, \
                 gyro_x, gyro_y, gyro_z, \
                 euler_x, euler_y, euler_z, \
-                (-1)*quat_roll, (-1)*quat_pitch, (-1)*quat_yaw, \
+                quat_roll, quat_pitch, quat_yaw, \
                 quaternion_1, quaternion_2, quaternion_3, quaternion_4, \
                 magnetic_x, magnetic_y, magnetic_z,\
                 calibstat_sys, calibstat_gyro, calibstat_accel, calibstat_mag
