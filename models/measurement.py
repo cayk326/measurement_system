@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import datetime
 
+from .signalprocessing import butterlowpass
 
 path = os.getcwd()
 
@@ -72,6 +73,7 @@ class measurement_BNO055:
         self.current_data_list = np.array([])
         self.assy_data = np.array([])
         self.df = pd.DataFrame(columns=self.COLUMNS)
+        self.filtered_df = None
         i2c_instance = board.I2C()
         self.bno055_sensor = adafruit_bno055.BNO055_I2C(i2c_instance)
 
@@ -79,6 +81,13 @@ class measurement_BNO055:
         self.IsStart = False
         self.IsStop = True
         self.IsShow = False
+
+        self.Isfilter=True
+        self.fpass = 3
+        self.fstop = 5
+        self.gpass = 3
+        self.gstop = 8
+
 
 
     def calibration(self):
@@ -118,13 +127,13 @@ class measurement_BNO055:
         linear_accel_y = linear_accel_y
         linear_accel_z = linear_accel_z
         gyro_x = gyro_x
-        gyro_y = 0.0 if gyro_y == None else (-1) * gyro_y
+        gyro_y = 0.0 if gyro_y == None else gyro_y
         gyro_z = gyro_z
         euler_x = 0.0 if euler_x == None else (-1) * euler_x
-        euler_y = euler_y
+        euler_y = (-1) * euler_y
         euler_z = euler_z
         quat_roll = quat_roll
-        quat_pitch = (-1) * quat_pitch
+        quat_pitch = quat_pitch
         quat_yaw = quat_yaw
         #quaternion_1, quaternion_2, quaternion_3, quaternion_4 = quaternion_1, quaternion_2, quaternion_3, quaternion_4
         #magnetic_x, magnetic_y, magnetic_z = magnetic_x, magnetic_y, magnetic_z
@@ -215,9 +224,32 @@ class measurement_BNO055:
         self.df = pd.DataFrame(self.assy_data)
         self.df.columns = self.COLUMNS
         self.df.to_csv(self.datapath + '/'+ timestamp +'_measurement_raw_data.csv', sep=',', encoding='utf-8', index=False, header=True)
+        if self.Isfilter:
+            self.filtered_df = self.filtering(df=self.df, labellist=self.COLUMNS[1:])
+            self.filtered_df.to_csv(self.datapath + '/'+ timestamp +'_measurement_filt_data.csv', sep=',', encoding='utf-8', index=False, header=True)
+
+
         print("Dataframe was saved!")
 
 
+    def filtering(self, df, labellist):
+        """
+        Label list must dropped "Time" label.
+        Filter function doesn't need "Time" for the computation.
+        """
+        filtered_df = df.copy()
+        for idx, labelname in enumerate(labellist):
+            filtered_df[labelname] = butterlowpass(x=df[labelname], 
+                                                   fpass=self.fpass,
+                                                   fstop=self.fstop,
+                                                   gpass=self.gpass,
+                                                   gstop=self.gstop,
+                                                   fs=1 / self.sampling_time,
+                                                   dt = self.sampling_time,
+                                                   checkflag=False,
+                                                   labelname=labelname)
+
+        return filtered_df
 
     def meas_start(self):
         
