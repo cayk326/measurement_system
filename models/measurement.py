@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import datetime
 
+from .signalprocessing import butterlowpass
 
 path = os.getcwd()
 
@@ -30,6 +31,7 @@ class measurement_BNO055:
                         "euler_x", "euler_y", "euler_z",
                         "quat_roll", "quat_pitch", "quat_yaw", 
                         "quaternion_1", "quaternion_2", "quaternion_3", "quaternion_4", \
+                        "magnetic_x", "magnetic_y", "magnetic_z", \
                         "calibstat_sys", "calibstat_gyro", "calibstat_accel", "calibstat_mag"
                         ]
 
@@ -59,7 +61,10 @@ class measurement_BNO055:
         self.quat1_queue = deque(np.zeros(self.INIT_LEN))# quat1 w
         self.quat2_queue = deque(np.zeros(self.INIT_LEN))# quat2 x
         self.quat3_queue = deque(np.zeros(self.INIT_LEN))# quat3 y
-        self.quat4_queue = deque(np.zeros(self.INIT_LEN))# quat4 z  
+        self.quat4_queue = deque(np.zeros(self.INIT_LEN))# quat4 z
+        self.magnetic_x_queue = deque(np.zeros(self.INIT_LEN))# magnetic_x
+        self.magnetic_y_queue = deque(np.zeros(self.INIT_LEN))# magnetic_y
+        self.magnetic_z_queue = deque(np.zeros(self.INIT_LEN))# magnetic_z
         self.calibstat_sys_queue = deque(np.zeros(self.INIT_LEN))# calibstat_sys
         self.calibstat_gyro_queue = deque(np.zeros(self.INIT_LEN))# calibstat_gyro
         self.calibstat_accel_queue = deque(np.zeros(self.INIT_LEN))# calibstat_accel
@@ -68,6 +73,7 @@ class measurement_BNO055:
         self.current_data_list = np.array([])
         self.assy_data = np.array([])
         self.df = pd.DataFrame(columns=self.COLUMNS)
+        self.filtered_df = None
         i2c_instance = board.I2C()
         self.bno055_sensor = adafruit_bno055.BNO055_I2C(i2c_instance)
 
@@ -75,6 +81,13 @@ class measurement_BNO055:
         self.IsStart = False
         self.IsStop = True
         self.IsShow = False
+
+        self.Isfilter=True
+        self.fpass = 3
+        self.fstop = 5
+        self.gpass = 3
+        self.gstop = 8
+
 
 
     def calibration(self):
@@ -106,13 +119,31 @@ class measurement_BNO055:
 
         quaternion_1, quaternion_2, quaternion_3, quaternion_4 = [val for val in self.bno055_sensor.quaternion]# quaternion
         quat_roll, quat_pitch, quat_yaw = self.calcEulerfromQuaternion(quaternion_1, quaternion_2, quaternion_3, quaternion_4)# Cal Euler angle from quaternion
+        magnetic_x, magnetic_y, magnetic_z = [val for val in self.bno055_sensor.magnetic]# magnetic field
         calibstat_sys, calibstat_gyro, calibstat_accel, calibstat_mag = [val for val in self.bno055_sensor.calibration_status]# Status of calibration
+
+        ## Convert values
+        linear_accel_x = linear_accel_x
+        linear_accel_y = linear_accel_y
+        linear_accel_z = linear_accel_z
+        gyro_x = gyro_x
+        gyro_y = 0.0 if gyro_y == None else gyro_y
+        gyro_z = gyro_z
+        euler_x = 0.0 if euler_x == None else (-1) * euler_x
+        euler_y = 0.0 if euler_y == None else (-1) * euler_y
+        euler_z = euler_z
+        quat_roll = quat_roll
+        quat_pitch = quat_pitch
+        quat_yaw = quat_yaw
+        #quaternion_1, quaternion_2, quaternion_3, quaternion_4 = quaternion_1, quaternion_2, quaternion_3, quaternion_4
+        #magnetic_x, magnetic_y, magnetic_z = magnetic_x, magnetic_y, magnetic_z
 
         return linear_accel_x, linear_accel_y, linear_accel_z, \
                 gyro_x, gyro_y, gyro_z, \
                 euler_x, euler_y, euler_z, \
-                (-1)*quat_roll, (-1)*quat_pitch, (-1)*quat_yaw, \
+                quat_roll, quat_pitch, quat_yaw, \
                 quaternion_1, quaternion_2, quaternion_3, quaternion_4, \
+                magnetic_x, magnetic_y, magnetic_z,\
                 calibstat_sys, calibstat_gyro, calibstat_accel, calibstat_mag
 
 
@@ -127,6 +158,7 @@ class measurement_BNO055:
         euler_x, euler_y, euler_z, \
         quat_roll, quat_pitch, quat_yaw, \
         quat1, quat2, quat3, quat4, \
+        magnetic_x, magnetic_y, magnetic_z, \
         calibstat_sys, calibstat_gyro, calibstat_accel, calibstat_mag = self.get_data_from_BNO055()
 
         update_queue(self.Time_queue, self.current_time)
@@ -146,6 +178,9 @@ class measurement_BNO055:
         update_queue(self.quat2_queue, quat2)
         update_queue(self.quat3_queue, quat3)
         update_queue(self.quat4_queue, quat4)
+        update_queue(self.magnetic_x_queue, magnetic_x)
+        update_queue(self.magnetic_y_queue, magnetic_y)
+        update_queue(self.magnetic_z_queue, magnetic_z)
         update_queue(self.calibstat_sys_queue, calibstat_sys)
         update_queue(self.calibstat_gyro_queue, calibstat_gyro)
         update_queue(self.calibstat_accel_queue, calibstat_accel)
@@ -157,6 +192,7 @@ class measurement_BNO055:
                     euler_x, euler_y, euler_z, \
                     quat_roll, quat_pitch, quat_yaw, \
                     quat1, quat2, quat3, quat4, \
+                    magnetic_x, magnetic_y, magnetic_z, \
                     calibstat_sys, calibstat_gyro, calibstat_accel, calibstat_mag])
         else:
             return False
@@ -188,9 +224,32 @@ class measurement_BNO055:
         self.df = pd.DataFrame(self.assy_data)
         self.df.columns = self.COLUMNS
         self.df.to_csv(self.datapath + '/'+ timestamp +'_measurement_raw_data.csv', sep=',', encoding='utf-8', index=False, header=True)
+        if self.Isfilter:
+            self.filtered_df = self.filtering(df=self.df, labellist=self.COLUMNS[1:])
+            self.filtered_df.to_csv(self.datapath + '/'+ timestamp +'_measurement_filt_data.csv', sep=',', encoding='utf-8', index=False, header=True)
+
+
         print("Dataframe was saved!")
 
 
+    def filtering(self, df, labellist):
+        """
+        Label list must dropped "Time" label.
+        Filter function doesn't need "Time" for the computation.
+        """
+        filtered_df = df.copy()
+        for idx, labelname in enumerate(labellist):
+            filtered_df[labelname] = butterlowpass(x=df[labelname], 
+                                                   fpass=self.fpass,
+                                                   fstop=self.fstop,
+                                                   gpass=self.gpass,
+                                                   gstop=self.gstop,
+                                                   fs=1 / self.sampling_time,
+                                                   dt = self.sampling_time,
+                                                   checkflag=False,
+                                                   labelname=labelname)
+
+        return filtered_df
 
     def meas_start(self):
         
@@ -271,6 +330,7 @@ def main():
         print("Calibration was finished!")
     
     if True:
+        meas_bno055.IsShow = True
         meas_bno055.meas_start()
 
 
