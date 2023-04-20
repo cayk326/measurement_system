@@ -130,7 +130,7 @@ class measurement_BNO055:
         gyro_y = 0.0 if gyro_y == None else gyro_y
         gyro_z = gyro_z
         euler_x = 0.0 if euler_x == None else (-1) * euler_x
-        euler_y = (-1) * euler_y
+        euler_y = 0.0 if euler_y == None else (-1) * euler_y
         euler_z = euler_z
         quat_roll = quat_roll
         quat_pitch = quat_pitch
@@ -330,6 +330,7 @@ def main():
         print("Calibration was finished!")
     
     if True:
+        meas_bno055.IsShow = True
         meas_bno055.meas_start()
 
 
